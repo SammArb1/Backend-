@@ -1,4 +1,5 @@
 using ApiProyectoWeb.DAO;
+using ApiProyectoWeb.Data;
 using ApiProyectoWeb.Interface;
 using ApiProyectoWeb.Models;
 using ApiProyectoWeb.Services;
@@ -40,14 +41,25 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SecretKeyVeryLongStringRequiredForJWT123456789!"))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsync("{\"message\": \"Error 401: Tu sesión ha expirado, por favor vuelve a iniciar sesión.\"}");
+        }
+    };
 });
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
-        policy => policy.AllowAnyOrigin()
+        policy => policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
                         .AllowAnyMethod()
-                        .AllowAnyHeader());
+                        .AllowAnyHeader()
+                        .AllowCredentials());
 });
 
 builder.Services.AddControllers();
@@ -64,6 +76,9 @@ builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
 var app = builder.Build();
+
+// Llamar al DbSeeder antes de iniciar
+await DbSeeder.SeedDataAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

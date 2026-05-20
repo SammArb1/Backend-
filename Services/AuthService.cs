@@ -7,6 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text;
 
 namespace ApiProyectoWeb.Services
 {
@@ -38,7 +41,26 @@ namespace ApiProyectoWeb.Services
                 return "User created successfully!";
             }
 
-            return "User creation failed! Please check user details and try again.";
+            var translatedErrors = result.Errors.Select(e => TranslateIdentityError(e.Code)).ToList();
+            var errors = string.Join(", ", translatedErrors);
+            return $"Error al crear usuario: {errors}";
+        }
+
+        private string TranslateIdentityError(string code)
+        {
+            return code switch
+            {
+                "DuplicateUserName" => "El correo ingresado ya está registrado.",
+                "DuplicateEmail" => "El correo ingresado ya está registrado.",
+                "PasswordTooShort" => "La contraseña debe tener al menos 8 caracteres.",
+                "PasswordRequiresNonAlphanumeric" => "La contraseña debe tener al menos un carácter especial.",
+                "PasswordRequiresDigit" => "La contraseña debe tener al menos un número.",
+                "PasswordRequiresLower" => "La contraseña debe tener al menos una letra minúscula.",
+                "PasswordRequiresUpper" => "La contraseña debe tener al menos una letra mayúscula.",
+                "InvalidEmail" => "El correo ingresado no es válido.",
+                "InvalidUserName" => "El nombre de usuario no es válido.",
+                _ => "Error desconocido al procesar la solicitud."
+            };
         }
 
         public async Task<string> LoginAsync(LoginDto model)
@@ -48,6 +70,7 @@ namespace ApiProyectoWeb.Services
             {
                 var authClaims = new List<Claim>
                 {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
                     new Claim(ClaimTypes.Name, user.UserName!),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
@@ -65,6 +88,18 @@ namespace ApiProyectoWeb.Services
                 return new JwtSecurityTokenHandler().WriteToken(token);
             }
             return "Unauthorized";
+        }
+
+        public async Task<List<object>> GetUsersAsync()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            return users.Select(u => new {
+                id = u.Id,
+                fullName = u.FullName ?? u.UserName,
+                email = u.Email,
+                major = u.Major ?? "",
+                avatarUrl = ""
+            }).Cast<object>().ToList();
         }
     }
 }

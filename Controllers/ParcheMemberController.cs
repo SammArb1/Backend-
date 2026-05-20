@@ -27,32 +27,60 @@ namespace ApiProyectoWeb.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var result = await _service.GetById(id);
-            if (result == null) return NotFound();
-            return Ok(result);
+            try
+            {
+                var result = await _service.GetById(id);
+                if (result == null) return NotFound(new { message = "Error 404: Miembro de parche no encontrado." });
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error 500: {ex.Message}" });
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ParcheMember newMember)
         {
-            var result = await _service.Create(newMember);
-            return CreatedAtAction(nameof(GetById), new { id = result.id_parche_member }, result);
+            try
+            {
+                var result = await _service.Create(newMember);
+                return CreatedAtAction(nameof(GetById), new { id = result.id_parche_member }, result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error 500: No se pudo crear el miembro del parche. {ex.Message}" });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Edit(Guid id, [FromBody] ParcheMember editMember)
         {
-            var result = await _service.Edit(id, editMember);
-            if (!result) return NotFound();
-            return NoContent();
+            try
+            {
+                var result = await _service.Edit(id, editMember);
+                if (!result) return NotFound(new { message = "Error 404: Miembro no existe." });
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error 500: {ex.Message}" });
+            }
         }
 
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(Guid id)
         {
-            var result = await _service.ChangeStatus(id);
-            if (result == -1) return NotFound();
-            return Ok(new { isActive = result });
+            try
+            {
+                var result = await _service.ChangeStatus(id);
+                if (result == -1) return NotFound(new { message = "Error 404: Miembro no existe." });
+                return Ok(new { isActive = result });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error 500: {ex.Message}" });
+            }
         }
     }
 }

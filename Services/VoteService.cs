@@ -31,6 +31,32 @@ namespace ApiProyectoWeb.Services
             return newVote;
         }
 
+        public async Task<Vote?> CastVote(ApiProyectoWeb.Models.DTOs.CastVoteDto voteDto, string userId)
+        {
+            var plan = await _context.Plans.FindAsync(voteDto.PlanId);
+            if (plan == null || plan.state != "VOTING_OPEN" || plan.isActive == 0) return null;
+
+            var existingVote = await _context.Votes.FirstOrDefaultAsync(v => v.id_plan == voteDto.PlanId && v.id_user == userId && v.isActive == 1);
+            if (existingVote != null)
+            {
+                existingVote.id_option = voteDto.OptionId;
+                await _context.SaveChangesAsync();
+                return existingVote;
+            }
+
+            var newVote = new Vote
+            {
+                id_vote = Guid.NewGuid(),
+                id_plan = voteDto.PlanId,
+                id_user = userId,
+                id_option = voteDto.OptionId,
+                isActive = 1
+            };
+            _context.Votes.Add(newVote);
+            await _context.SaveChangesAsync();
+            return newVote;
+        }
+
         public async Task<bool> Edit(Guid id, Vote editVote)
         {
             var objExist = await _context.Votes.FindAsync(id);
@@ -51,6 +77,17 @@ namespace ApiProyectoWeb.Services
 
             await _context.SaveChangesAsync();
             return objExist.isActive;
+        }
+
+        public async Task<object> GetByPlan(Guid planId)
+        {
+            var votes = await _context.Votes.Where(v => v.id_plan == planId && v.isActive == 1).ToListAsync();
+            return votes.Select(v => new {
+                id_vote = v.id_vote,
+                id_plan = v.id_plan,
+                id_user = v.id_user,
+                id_option = v.id_option
+            }).ToList();
         }
     }
 }

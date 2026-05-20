@@ -4,5 +4,6 @@ namespace ApiProyectoWeb.Interface
     {
         Task<string> RegisterAsync(Models.DTOs.RegisterDto model);
         Task<string> LoginAsync(Models.DTOs.LoginDto model);
+        Task<List<object>> GetUsersAsync();
     }
 }

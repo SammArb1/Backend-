@@ -120,6 +120,7 @@ namespace ApiProyectoWeb.Services
             var plans = await _context.Plans.Where(p => p.id_parche == parcheId && p.isActive == 1).ToListAsync();
             var planIds = plans.Select(p => p.id_plan).ToList();
             var options = await _context.PlanOptions.Where(o => planIds.Contains(o.id_plan) && o.isActive == 1).ToListAsync();
+            var votes = await _context.Votes.Where(v => planIds.Contains(v.id_plan) && v.isActive == 1).ToListAsync();
 
             return plans.Select(p => new {
                 id_plan = p.id_plan,
@@ -136,7 +137,7 @@ namespace ApiProyectoWeb.Services
                     id_plan_option = o.id_plan_option,
                     place = o.place,
                     time = o.time,
-                    votesCount = o.votesCount
+                    votesCount = p.state == "VOTING_OPEN" ? votes.Count(v => v.id_option == o.id_plan_option) : o.votesCount
                 }).ToList()
             }).ToList();
         }
